@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>TV ao Vivo - Player Leve</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #58a6ff;
+    }
+
+    #busca {
+      padding: 12px;
+      font-size: 16px;
+      width: 90%;
+      max-width: 400px;
+      border: 1px solid #30363d;
+      background: #161b22;
+      color: #c9d1d9;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+
+    #canalSelect {
+      padding: 12px;
+      font-size: 16px;
+      width: 90%;
+      max-width: 400px;
+      margin-top: 10px;
+      border-radius: 8px;
+      background: #161b22;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+    }
+
+    video {
+      width: 100%;
+      max-width: 900px;
+      height: auto;
+      margin-top: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+      background: #000;
+    }
+
+    .footer {
+      margin-top: 30px;
+      font-size: 14px;
+      color: #8b949e;
+    }
+
+    #canalAtual {
+      margin-top: 15px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #58a6ff;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📺 Player de Canais ao Vivo</h1>
+
+  <input type="text" id="busca" placeholder="🔍 Buscar canal..." />
+  <br>
+  <select id="canalSelect"></select>
+
+  <div id="canalAtual"></div>
+
+  <video id="player" controls autoplay></video>
+
+  <div class="footer">
+    <p>ℹ️ Se o canal não carregar, pode estar fora do ar ou bloqueado por região.</p>
+  </div>
+
+  <script>
+    const canais = [
+      { nome: "TV Cultura (SP)", url: "https://video01.cdn.rcs.com.br/tvcultura/tvcultura/playlist.m3u8" },
+      { nome: "TV Brasil", url: "https://tvbrasil.ebc.com.br/playlist.m3u8" },
+      { nome: "Al Jazeera English", url: "https://live-hls-web-aje.getaj.net/AJE/index.m3u8" },
+      { nome: "France 24 (English)", url: "https://static.france24.com/live/F24_EN_LO_HLS/live_web.m3u8" },
+      { nome: "NASA TV HD", url: "https://nasatv-lh.akamaihd.net/i/NASA_101@319270/master.m3u8" },
+    ];
+
+    const select = document.getElementById("canalSelect");
+    const video = document.getElementById("player");
+    const busca = document.getElementById("busca");
+    const canalAtual = document.getElementById("canalAtual");
+
+    function preencherSelect(lista) {
+      select.innerHTML = "";
+      lista.forEach((canal, index) => {
+        const option = document.createElement("option");
+        option.value = canal.url;
+        option.textContent = canal.nome;
+        if (index === 0) option.selected = true;
+        select.appendChild(option);
+      });
+    }
+
+    function carregarCanal(url, nome = '') {
+      if (window.hls) {
+        window.hls.destroy();
+        window.hls = null;
+      }
+
+      if (Hls.isSupported()) {
+        window.hls = new Hls();
+        window.hls.loadSource(url);
+        window.hls.attachMedia(video);
+        window.hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = url;
+        video.addEventListener('loadedmetadata', () => video.play().catch(() => {}));
+      } else {
+        alert("Seu navegador não suporta HLS.");
+      }
+
+      canalAtual.textContent = nome ? `🎬 Assistindo: ${nome}` : '';
+    }
+
+    // Inicializa a interface
+    preencherSelect(canais);
+    carregarCanal(canais[0].url, canais[0].nome);
+
+    select.addEventListener("change", () => {
+      const nomeSelecionado = select.options[select.selectedIndex].text;
+      carregarCanal(select.value, nomeSelecionado);
+    });
+
+    // Debounce para busca (espera o usuário parar de digitar)
+    let debounceTimer;
+    busca.addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        const texto = busca.value.toLowerCase();
+        const filtrados = canais.filter(canal => canal.nome.toLowerCase().includes(texto));
+        preencherSelect(filtrados);
+        if (filtrados.length > 0) carregarCanal(filtrados[0].url, filtrados[0].nome);
+      }, 300);
+    });
+  </script>
+
+</body>
+</html>
